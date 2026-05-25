@@ -50,8 +50,12 @@ def parse_di_udp_packet(data: bytes) -> Tuple[dict, np.ndarray]:
     raw = data[8:8 + plen]
     # interpret as int16
     iq = np.frombuffer(raw, dtype=np.int16)
+    if iq.size == 0:
+        raise ValueError("Empty IQ payload")
     if iq.size % 2 != 0:
         iq = iq[:-1]
+    if iq.size == 0:
+        raise ValueError("Incomplete IQ pair")
     iq = iq.reshape(-1, 2)
     complex_iq = iq[:, 0].astype(np.float32) + 1j * iq[:, 1].astype(np.float32)
     return header, complex_iq
@@ -123,7 +127,11 @@ class AsyncUDPPipeline:
             except Exception as e:
                 print("Parse error:", e)
                 continue
-            iq = preprocess(iq)
+            try:
+                iq = preprocess(iq)
+            except Exception as e:
+                print("Preprocess error:", e)
+                continue
             feats = extract_features(iq)
             if infer:
                 if self.model is None:
@@ -146,6 +154,10 @@ class UDPProtocol(asyncio.DatagramProtocol):
         self.queue = queue
 
     def datagram_received(self, data: bytes, addr):
+        try:
+            print(f"Packet received from {addr}, {len(data)} bytes")
+        except Exception:
+            pass
         try:
             # put_nowait to avoid blocking the socket reader
             self.queue.put_nowait(data)
@@ -180,7 +192,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=int, default=2, help="1=train, 2=infer")
     parser.add_argument("--host", type=str, default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=10001)
+    parser.add_argument("--port", type=int, default=5005)
     parser.add_argument("--model", type=str, default="model.pkl")
     args = parser.parse_args()
 
