@@ -180,7 +180,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=int, default=2, help="1=train, 2=infer")
     parser.add_argument("--host", type=str, default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=10001)
+    parser.add_argument("--port", type=int, default=5005)
     parser.add_argument("--model", type=str, default="model.pkl")
     args = parser.parse_args()
 
